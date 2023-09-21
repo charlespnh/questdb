@@ -26,12 +26,8 @@ package io.questdb.griffin.engine.functions.groupby;
 
 import io.questdb.cairo.ArrayColumnTypes;
 import io.questdb.cairo.ColumnType;
-import io.questdb.cairo.map.MapValue;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
-import io.questdb.griffin.engine.functions.DoubleFunction;
-import io.questdb.griffin.engine.functions.GroupByFunction;
-import io.questdb.griffin.engine.functions.UnaryFunction;
 import io.questdb.std.Numbers;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,53 +36,9 @@ import org.jetbrains.annotations.NotNull;
  *
  * @see <a href="https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm">Welford's algorithm</a>
  */
-public class StdDevPopDoubleGroupByFunction extends DoubleFunction implements GroupByFunction, UnaryFunction {
-    private final Function arg;
-    private int valueIndex;
-
+public class StdDevPopDoubleGroupByFunction extends StdDevSampleDoubleGroupByFunction {
     public StdDevPopDoubleGroupByFunction(@NotNull Function arg) {
-        this.arg = arg;
-    }
-
-    @Override
-    public void computeFirst(MapValue mapValue, Record record) {
-        final double d = arg.getDouble(record);
-        if (Numbers.isFinite(d)) {
-            double mean = 0;
-            double sum = 0;
-            long count = 1;
-            double oldMean = mean;
-            mean += (d - mean) / count;
-            sum += (d - mean) * (d - oldMean);
-            mapValue.putDouble(valueIndex, mean);
-            mapValue.putDouble(valueIndex + 1, sum);
-            mapValue.putLong(valueIndex + 2, 1L);
-        } else {
-            mapValue.putDouble(valueIndex, 0);
-            mapValue.putDouble(valueIndex + 1, 0);
-            mapValue.putLong(valueIndex + 2, 0);
-        }
-    }
-
-    @Override
-    public void computeNext(MapValue mapValue, Record record) {
-        final double d = arg.getDouble(record);
-        if (Numbers.isFinite(d)) {
-            double mean = mapValue.getDouble(valueIndex);
-            double sum = mapValue.getDouble(valueIndex + 1);
-            long count = mapValue.getLong(valueIndex + 2) + 1;
-            double oldMean = mean;
-            mean += (d - mean) / count;
-            sum += (d - mean) * (d - oldMean);
-            mapValue.putDouble(valueIndex, mean);
-            mapValue.putDouble(valueIndex + 1, sum);
-            mapValue.addLong(valueIndex + 2, 1L);
-        }
-    }
-
-    @Override
-    public Function getArg() {
-        return arg;
+        super(arg);
     }
 
     @Override
@@ -103,31 +55,5 @@ public class StdDevPopDoubleGroupByFunction extends DoubleFunction implements Gr
     @Override
     public String getName() {
         return "stddev_pop";
-    }
-
-    @Override
-    public boolean isConstant() {
-        return false;
-    }
-
-    @Override
-    public void pushValueTypes(ArrayColumnTypes columnTypes) {
-        this.valueIndex = columnTypes.getColumnCount();
-        columnTypes.add(ColumnType.DOUBLE);
-        columnTypes.add(ColumnType.DOUBLE);
-        columnTypes.add(ColumnType.LONG);
-    }
-
-    @Override
-    public void setDouble(MapValue mapValue, double value) {
-        mapValue.putDouble(valueIndex, value);
-        mapValue.putLong(valueIndex + 2, 1L);
-    }
-
-    @Override
-    public void setNull(MapValue mapValue) {
-        mapValue.putDouble(valueIndex, Double.NaN);
-        mapValue.putDouble(valueIndex + 1, Double.NaN);
-        mapValue.putLong(valueIndex + 2, 0);
     }
 }

@@ -41,8 +41,8 @@ import org.jetbrains.annotations.NotNull;
  * @see <a href="https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm">Welford's algorithm</a>
  */
 public class StdDevSampleDoubleGroupByFunction extends DoubleFunction implements GroupByFunction, UnaryFunction {
-    private final Function arg;
-    private int valueIndex;
+    protected final Function arg;
+    protected int valueIndex;
 
     public StdDevSampleDoubleGroupByFunction(@NotNull Function arg) {
         this.arg = arg;
